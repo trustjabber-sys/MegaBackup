@@ -63,7 +63,8 @@ def show_note(text):
 def choose_action():
     print("  [1] Установить MegaBackup")
     print("  [2] Удалить MegaBackup с сервера")
-    return input("\n  Выберите действие [1/2]: ").strip()
+    print("  [3] Изменить расписание бэкапа")
+    return input("\n  Выберите действие [1/2/3]: ").strip()
 
 
 def uninstall():
@@ -181,19 +182,86 @@ def ask_retention_days():
         show_note("Введите целое число больше нуля.")
 
 
-def ask_schedule():
+def ask_schedule(default="02:30"):
     while True:
-        value = input("  Время ежедневного запуска, местное [02:30]: ").strip() or "02:30"
+        value = input(
+            f"  Время ежедневного запуска, местное [{default}]: "
+        ).strip() or default
         match = re.fullmatch(r"([01]\d|2[0-3]):([0-5]\d)", value)
         if match:
             return match.group(1), match.group(2)
         show_note("Используйте формат ЧЧ:ММ, например 02:30.")
 
 
+def ask_archive_prefix(default="MegaBackup"):
+    while True:
+        value = input(
+            f"  Имя архива без даты и расширения [{default}]: "
+        ).strip() or default
+        if value not in {".", ".."} and not any(
+            char in value for char in ("/", "\\", "\0")
+        ) and not any(ord(char) < 32 or ord(char) == 127 for char in value):
+            return value
+        show_note("Имя не должно содержать /, \\, или управляющие символы.")
+
+
+def save_config(config):
+    CONFIG_PATH.write_text(
+        json.dumps(config, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    CONFIG_PATH.chmod(0o600)
+
+
+def write_cron_schedule(hour, minute):
+    cron_entry = (
+        "SHELL=/bin/sh\n"
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n"
+        f"{minute} {hour} * * * root {VENV_PYTHON} {SCRIPT_PATH} "
+        f">> {LOG_PATH} 2>&1\n"
+    )
+    CRON_PATH.write_text(cron_entry, encoding="utf-8")
+    CRON_PATH.chmod(0o644)
+
+
+def deploy_backup_script():
+    source_script = Path(__file__).resolve().with_name("MegaBackup.py")
+    if not source_script.is_file():
+        raise RuntimeError("Положите MegaBackup.py рядом с установщиком.")
+    SCRIPT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source_script, SCRIPT_PATH)
+    SCRIPT_PATH.chmod(0o755)
+    if CONFIG_PATH.is_file():
+        config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        if "archive_password" in config:
+            config.pop("archive_password")
+            save_config(config)
+
+
+def update_schedule():
+    if not CRON_PATH.is_file():
+        raise RuntimeError("Установка не найдена: файл расписания отсутствует.")
+    deploy_backup_script()
+
+    default_time = "02:30"
+    for line in CRON_PATH.read_text(encoding="utf-8").splitlines():
+        fields = line.split()
+        if len(fields) >= 6 and fields[5] == "root":
+            default_time = f"{fields[1]}:{fields[0]}"
+            break
+
+    hour, minute = ask_schedule(default_time)
+    write_cron_schedule(hour, minute)
+    run(["systemctl", "enable", "--now", "cron"], "Применение расписания")
+    show_ok(f"Бэкап будет запускаться ежедневно в {hour}:{minute}.")
+    return 0
+
+
 def collect_config():
     print(paint("  Укажите источники, доступы и параметры хранения.", "dim"))
     backup_paths = ask_backup_paths()
     mega_folder = input("  Корневая папка на MEGA [MegaBackup]: ").strip() or "MegaBackup"
+    archive_prefix = ask_archive_prefix()
     mega_email = input("  Email MEGA: ").strip()
     mega_password = getpass.getpass("  Пароль MEGA: ")
     telegram_bot_token = getpass.getpass("  Токен Telegram-бота: ")
@@ -209,6 +277,8 @@ def collect_config():
         "mega_email": mega_email,
         "mega_password": mega_password,
         "mega_folder": mega_folder,
+        "archive_prefix": archive_prefix,
+        "archive_prefix_history": [],
         "telegram_bot_token": telegram_bot_token,
         "telegram_chat_id": telegram_chat_id,
         "retention_days": retention_days,
@@ -224,6 +294,8 @@ def main():
         action = choose_action()
         if action == "2":
             return uninstall()
+        if action == "3":
+            return update_schedule()
         if action != "1":
             show_note("Действие отменено.")
             return 0
@@ -274,24 +346,10 @@ def main():
         ], "Проверка MEGA-клиента")
 
         show_step("4", "Установка MegaBackup")
-        SCRIPT_PATH.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source_script, SCRIPT_PATH)
-        SCRIPT_PATH.chmod(0o755)
+        deploy_backup_script()
 
-        CONFIG_PATH.write_text(
-            json.dumps(config, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-        CONFIG_PATH.chmod(0o600)
-
-        cron_entry = (
-            "SHELL=/bin/sh\n"
-            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n"
-            f"{minute} {hour} * * * root {VENV_PYTHON} {SCRIPT_PATH} "
-            f">> {LOG_PATH} 2>&1\n"
-        )
-        CRON_PATH.write_text(cron_entry, encoding="utf-8")
-        CRON_PATH.chmod(0o644)
+        save_config(config)
+        write_cron_schedule(hour, minute)
         LOG_PATH.touch(exist_ok=True)
         run(["systemctl", "enable", "--now", "cron"], "Включение службы cron")
 
@@ -302,6 +360,7 @@ def main():
         print(f"  Скрипт:      {SCRIPT_PATH}")
         print(f"  Настройки:   {CONFIG_PATH}")
         print(f"  MEGA-папка:  {config['mega_folder']}")
+        print("  Защита:      отсутствует (обычный архив .tar.gz)")
         print(f"  Хранение:    {config['retention_days']} дн.")
         print(f"  Расписание:  ежедневно в {hour}:{minute}")
         print(f"  Лог:         {LOG_PATH}")
