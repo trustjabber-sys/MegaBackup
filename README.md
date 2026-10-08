@@ -2,6 +2,8 @@
 
 Автоматическое резервное копирование папок сервера в облако [MEGA](https://mega.nz) с уведомлениями в Telegram.
 
+▶️ **Видео по установке:** [https://www.youtube.com/watch?v=VK5d-AUQBFU](https://www.youtube.com/watch?v=VK5d-AUQBFU)
+
 Поддерживаются **Ubuntu** и **Debian**. Архивы создаются в формате `.tar.gz` (без пароля), загружаются в указанную папку MEGA и удаляются по истечении срока хранения.
 
 ## Возможности
@@ -24,26 +26,28 @@
 ## Быстрый старт
 
 1. Скачайте оба файла в одну папку:
- ```bash
+```bash
 git clone https://github.com/trustjabber-sys/MegaBackup.git
-   ```
+```
 ```bash
 cd MegaBackup
-   ```
+```
 
 2. Запустите установщик от root:
 
-   ```bash
-   sudo python3 install_MegaBackup.py
-   ```
+```bash
+sudo python3 install_MegaBackup.py
+```
 
 3. Выберите действие:
 
-   | Пункт | Действие |
-   |-------|----------|
-   | **1** | Установить MegaBackup |
-   | **2** | Удалить MegaBackup с сервера |
-   | **3** | Изменить расписание бэкапа |
+```
+| Пункт | Действие                     |
+| ----- | ---------------------------- |
+| **1** | Установить MegaBackup        |
+| **2** | Удалить MegaBackup с сервера |
+| **3** | Изменить расписание бэкапа   |
+```
 
 При установке вас спросят:
 
@@ -57,13 +61,15 @@ cd MegaBackup
 
 ## Что устанавливается
 
-| Путь | Назначение |
-|------|------------|
-| `/opt/MegaBackup/venv` | Виртуальное окружение Python |
-| `/usr/local/sbin/MegaBackup.py` | Скрипт бэкапа |
-| `/etc/MegaBackup.json` | Конфигурация (права `600`) |
-| `/etc/cron.d/MegaBackup` | Расписание cron |
-| `/var/log/MegaBackup.log` | Лог запусков |
+```
+| Путь                            | Назначение                   |
+| ------------------------------- | ---------------------------- |
+| `/opt/MegaBackup/venv`          | Виртуальное окружение Python |
+| `/usr/local/sbin/MegaBackup.py` | Скрипт бэкапа                |
+| `/etc/MegaBackup.json`          | Конфигурация (права `600`)   |
+| `/etc/cron.d/MegaBackup`        | Расписание cron              |
+| `/var/log/MegaBackup.log`       | Лог запусков                 |
+```
 
 ## Ручной запуск
 
@@ -131,26 +137,28 @@ sudo python3 install_MegaBackup.py
 
 ```json
 {
-  "backup_paths": ["/home/user/Documents", "/var/www"],
-  "mega_email": "user@example.com",
-  "mega_password": "…",
-  "mega_folder": "MegaBackup",
-  "archive_prefix": "MegaBackup",
-  "archive_prefix_history": [],
-  "telegram_bot_token": "…",
-  "telegram_chat_id": "…",
-  "retention_days": 30
+"backup_paths": ["/home/user/Documents", "/var/www"],
+"mega_email": "user@example.com",
+"mega_password": "…",
+"mega_folder": "MegaBackup",
+"archive_prefix": "MegaBackup",
+"archive_prefix_history": [],
+"telegram_bot_token": "…",
+"telegram_chat_id": "…",
+"retention_days": 30
 }
 ```
 
 Дополнительные (необязательные) параметры, которые можно добавить вручную:
 
-| Параметр | По умолчанию | Описание |
-|----------|--------------|----------|
-| `upload_retries` | `3` | Число повторных попыток загрузки |
-| `upload_retry_delay_seconds` | `30` | Базовая задержка между попытками (сек) |
-| `mega_login_retries` | как `upload_retries` | Повторные попытки входа в MEGA |
-| `mega_timeout_seconds` | `600` | Таймаут операций MEGA (сек) |
+```
+| Параметр                     | По умолчанию         | Описание                               |
+| ---------------------------- | -------------------- | -------------------------------------- |
+| `upload_retries`             | `3`                  | Число повторных попыток загрузки       |
+| `upload_retry_delay_seconds` | `30`                 | Базовая задержка между попытками (сек) |
+| `mega_login_retries`         | как `upload_retries` | Повторные попытки входа в MEGA         |
+| `mega_timeout_seconds`       | `600`                | Таймаут операций MEGA (сек)            |
+```
 
 Переменная окружения `MEGABACKUP_CONFIG` (или `MEGA_BACKUP_CONFIG`) позволяет указать другой путь к конфигу.
 
@@ -166,3 +174,4 @@ sudo python3 install_MegaBackup.py
 ## Лицензия
 
 Используйте на свой страх и риск. Автор не несёт ответственности за потерю данных или проблемы с аккаунтом MEGA.
+```
