@@ -25,10 +25,8 @@
 
 1. Скачайте оба файла в одну папку:
 
-   ```bash
-   # install_MegaBackup.py  — установщик
-   # MegaBackup.py          — основной скрипт бэкапа
-   ```
+git clone https://github.com/trustjabber-sys/MegaBackup.git
+cd MegaBackup
 
 2. Запустите установщик от root:
 
