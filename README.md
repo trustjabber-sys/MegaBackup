@@ -24,9 +24,12 @@
 ## Быстрый старт
 
 1. Скачайте оба файла в одну папку:
-
+ ```bash
 git clone https://github.com/trustjabber-sys/MegaBackup.git
+   ```
+```bash
 cd MegaBackup
+   ```
 
 2. Запустите установщик от root:
 
